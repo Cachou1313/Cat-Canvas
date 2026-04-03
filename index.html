@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Georgia',serif;background:#1c1c1e}
+#wrap{display:flex;flex-direction:column;height:100vh}
+#bar{display:flex;align-items:center;justify-content:center;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;background:#1c1c1e}
+#bar h2{font-size:17px;font-weight:700;color:#f0ece4;letter-spacing:0.03em;text-align:center;line-height:1.4}
+#stage{position:relative;flex:1;overflow:hidden}
+canvas#c{position:absolute;inset:0;display:block}
+#petLayer{position:absolute;inset:0;pointer-events:none}
+
+.pet-wrap{
+  position:absolute;
+  pointer-events:all;
+  cursor:grab;
+  user-select:none;
+  touch-action:none;
+  border-radius:50%;
+  /* white bezel */
+  border:4px solid #ffffff;
+  /* layered shadow: soft ambient + deeper drop */
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.12),
+    0 8px 24px rgba(0,0,0,0.6),
+    0 20px 48px rgba(0,0,0,0.4),
+    0 2px 6px rgba(0,0,0,0.8);
+  overflow:hidden;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.pet-wrap:hover{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.2),
+    0 12px 32px rgba(0,0,0,0.7),
+    0 24px 56px rgba(0,0,0,0.5),
+    0 2px 8px rgba(0,0,0,0.9);
+  transform: translateY(-2px) scale(1.02);
+}
+.pet-wrap:active{
+  cursor:grabbing;
+  transform: scale(0.98);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.15),
+    0 4px 12px rgba(0,0,0,0.7),
+    0 10px 28px rgba(0,0,0,0.5);
+}
+.pet-wrap img{
+  display:block;
+  pointer-events:none;
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:center 15%;
+}
+
+#foot{
+  font-size:11px;
+  color:rgba(255,255,255,0.2);
+  padding:6px 22px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  flex-shrink:0;
+  letter-spacing:0.03em;
+}
+#loading{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  font-size:14px;color:rgba(255,255,255,0.4);
+  font-family:Georgia,serif;
+  background:#1c1c1e;
+  z-index:200;
+  letter-spacing:0.04em;
+}
+.spinner{
+  width:28px;height:28px;
+  border:2px solid rgba(255,255,255,0.1);
+  border-top-color:rgba(255,255,255,0.5);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="bar">
+    <h2>Pet Project — Drag the images to play with Pretext / Canvas API</h2>
+  </div>
+  <div id="stage">
+    <div id="loading"><div class="spinner"></div><span id="loadMsg">Loading pets...</span></div>
+    <canvas id="c"></canvas>
+    <div id="petLayer"></div>
+  </div>
+  <div id="foot">Drag any pet — text reflows in real time</div>
+</div>
+<script>
+const FACTS = "Cats sleep between 12 and 16 hours a day, making them one of the most sleep-loving mammals on the planet. Dogs have a sense of smell that is estimated to be 10,000 to 100,000 times more powerful than that of humans. A group of cats is called a clowder, and a group of kittens is called a kindle. Dogs can understand up to 250 words and gestures, and have demonstrated basic arithmetic ability. Cats can make over 100 different vocal sounds, while dogs can only make around 10. A dog's nose print is as unique as a human fingerprint and can be used to identify them. A cat's nose print is equally unique — no two cats share the same pattern. Dogs have three eyelids, including a third lid called the nictitating membrane that keeps the eye moist and protected. Cats have a specialized collarbone that allows them to always land on their feet, a reflex called self-righting. The Basenji is the only breed of dog that cannot bark, instead producing a yodel-like sound called a barroo. The oldest known pet cat was found in a 9,500-year-old grave on the island of Cyprus, predating Egyptian cat worship by thousands of years. A dog's average body temperature runs between 101 and 102.5 degrees Fahrenheit, slightly higher than that of humans. Cats can rotate their ears 180 degrees, with each ear controlled by 32 individual muscles. Greyhounds are the fastest dog breed, capable of reaching speeds up to 45 miles per hour. A cat's heart beats nearly twice as fast as a human heart, between 140 and 220 beats per minute. Dogs curl into a ball when sleeping as an instinctive behavior to conserve warmth and protect their vital organs. Cats knead with their paws as a comforting behavior carried over from kittenhood, when they kneaded their mothers to stimulate milk flow. The Norwegian Lundehund has six toes on each foot and can tilt its head backward to touch its own spine. Cats are obligate carnivores, meaning their bodies require nutrients found only in animal flesh to survive and thrive. Dogs sweat primarily through the pads of their paws rather than through their skin like humans do. A cat's whiskers are roughly as wide as its body and help it gauge whether it can fit through a narrow space. The Chow Chow and the Shar-Pei are the only two dog breeds born with a blue-black tongue. Cats have a third eyelid called the nictitating membrane that sweeps across to protect and moisten the eye. A dog's heart beats between 60 and 140 times per minute depending on size — smaller breeds run faster than larger ones. Cats cannot taste sweetness because they lack the taste receptor gene that detects sugary flavors. Dogs dream during REM sleep and their paws and faces often twitch as they act out their dreams. A cat rubs its face on objects and people to deposit scent from facial glands, marking everything as familiar and safe. The Dalmatian is born completely white and develops its spots only as it grows older. Cats can jump up to six times their own body length in a single bound. Dogs have been selectively bred by humans for over 15,000 years, making them the first domesticated animal on Earth. Cats have a reflective layer behind their retinas called the tapetum lucidum, which bounces light back through the eye to dramatically improve night vision. A dog's whiskers, found on the muzzle and above the eyes, are highly sensitive and help detect subtle changes in airflow. Purring occurs at frequencies between 25 and 150 hertz, a range that may actively promote bone density and healing. Dogs have an extraordinary ability to detect certain diseases including cancer, diabetes, and seizures through scent alone. Ancient Egyptians revered cats so highly that killing one, even by accident, could be punishable by death. The Saint Bernard breed has historically been used for mountain rescue in the Swiss Alps, using its keen sense of smell to locate avalanche victims. Cats spend roughly 30 to 50 percent of their waking hours grooming themselves or other cats they trust. A dog's paw pads contain fatty tissue that acts as insulation, allowing them to walk on ice and snow with minimal discomfort. The world's largest domestic cat breed is the Maine Coon, with males regularly exceeding 20 pounds. Sphynx cats are not truly hairless — they have a fine layer of downy fuzz that makes their skin feel like warm suede. Black cats are considered good luck in the United Kingdom and Japan. Mastiffs are among the oldest and heaviest dog breeds, with some individuals exceeding 200 pounds. Dogs are one of only two mammals known to seek out eye contact with humans — the other being horses.";
+
+const PETS = [
+  { url: "https://raw.githubusercontent.com/Cachou1313/Cat-Canvas/main/Cachou.png", sz: 148, label: "Cachou", color: "#2a2a2a" },
+  { url: "https://raw.githubusercontent.com/Cachou1313/Cat-Canvas/main/neo.png",    sz: 155, label: "Neo",    color: "#8a7a6a" },
+  { url: "https://raw.githubusercontent.com/Cachou1313/Cat-Canvas/main/polly.png",  sz: 162, label: "Polly",  color: "#7a6040" },
+];
+
+const stage = document.getElementById('stage');
+const petLayer = document.getElementById('petLayer');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const loadingEl = document.getElementById('loading');
+const loadMsg = document.getElementById('loadMsg');
+let W, H;
+const PAD = 32, LINE_H = 27, FONT = '15px Georgia,serif';
+const pets = [];
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const oc = document.createElement('canvas');
+      oc.width = 400; oc.height = 400;
+      const oc2 = oc.getContext('2d');
+      const ar = img.naturalWidth / img.naturalHeight;
+      let sx=0,sy=0,sw=img.naturalWidth,sh=img.naturalHeight;
+      if (ar>1){sw=img.naturalHeight;sx=(img.naturalWidth-sw)/2;}
+      else{sh=img.naturalWidth;sy=(img.naturalHeight-sh)/2;}
+      oc2.drawImage(img,sx,sy,sw,sh,0,0,400,400);
+      resolve(oc.toDataURL('image/jpeg',0.88));
+    };
+    img.onerror = ()=>reject(new Error('img load failed'));
+    img.src = url;
+    setTimeout(()=>reject(new Error('timeout')), 8000);
+  });
+}
+
+function makeFallback(pet, sx, sy) {
+  const sz = pet.sz;
+  const oc = document.createElement('canvas');
+  oc.width=sz; oc.height=sz;
+  const c2=oc.getContext('2d');
+  c2.fillStyle=pet.color;
+  c2.beginPath();c2.arc(sz/2,sz/2,sz/2,0,Math.PI*2);c2.fill();
+  c2.fillStyle='rgba(255,255,255,0.6)';
+  c2.font=`500 13px Georgia,serif`;
+  c2.textAlign='center';c2.textBaseline='middle';
+  c2.fillText(pet.label,sz/2,sz/2);
+  makePet(oc.toDataURL(), sz, sx, sy);
+}
+
+function makePet(dataUrl, sz, sx, sy) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pet-wrap';
+  wrap.style.cssText = `width:${sz}px;height:${sz}px;left:${sx}px;top:${sy}px;z-index:10`;
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  wrap.appendChild(img);
+  petLayer.appendChild(wrap);
+
+  const p = {wrap, x:sx, y:sy, w:sz, h:sz, dragging:false, ox:0, oy:0};
+  pets.push(p);
+
+  const down = e => {
+    e.preventDefault(); p.dragging=true; wrap.style.zIndex=99;
+    const pt=e.touches?e.touches[0]:e;
+    const r=stage.getBoundingClientRect();
+    p.ox=pt.clientX-r.left-p.x; p.oy=pt.clientY-r.top-p.y;
+  };
+  const move = e => {
+    if(!p.dragging)return; e.preventDefault();
+    const pt=e.touches?e.touches[0]:e;
+    const r=stage.getBoundingClientRect();
+    p.x=Math.max(0,Math.min(W-p.w,pt.clientX-r.left-p.ox));
+    p.y=Math.max(0,Math.min(H-p.h,pt.clientY-r.top-p.oy));
+    wrap.style.left=p.x+'px'; wrap.style.top=p.y+'px';
+    redraw();
+  };
+  const up = ()=>{p.dragging=false; wrap.style.zIndex=10;};
+  wrap.addEventListener('mousedown',down);
+  wrap.addEventListener('touchstart',down,{passive:false});
+  window.addEventListener('mousemove',move);
+  window.addEventListener('touchmove',move,{passive:false});
+  window.addEventListener('mouseup',up);
+  window.addEventListener('touchend',up);
+}
+
+function getSegments(lineTop, lineBot) {
+  const blocked=[], M=20;
+  for(const p of pets){
+    const cx=p.x+p.w/2, cy=p.y+p.h/2;
+    const rx=p.w/2+M, ry=p.h/2+M;
+    const dy=(lineTop+lineBot)/2-cy;
+    if(Math.abs(dy)>=ry)continue;
+    const hw=rx*Math.sqrt(1-dy*dy/(ry*ry));
+    blocked.push([cx-hw,cx+hw]);
+  }
+  blocked.sort((a,b)=>a[0]-b[0]);
+  const segs=[]; let start=PAD;
+  for(const [bx,bxe] of blocked){
+    if(bx>start)segs.push([start,Math.min(bx-5,W-PAD)]);
+    start=Math.max(start,bxe+5);
+  }
+  if(start<W-PAD)segs.push([start,W-PAD]);
+  return segs.filter(s=>s[1]-s[0]>52);
+}
+
+function redraw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.font=FONT;
+  ctx.textBaseline='alphabetic';
+  ctx.fillStyle='rgba(240,236,228,0.88)';
+
+  const words=FACTS.split(/\s+/);
+  let wi=0, lineY=PAD+LINE_H;
+  while(wi<words.length && lineY<H-8){
+    const segs=getSegments(lineY-LINE_H+4,lineY+4);
+    for(const [sx,ex] of segs){
+      if(wi>=words.length)break;
+      const maxW=ex-sx-4;
+      let lw=[],lx=0;
+      while(wi<words.length){
+        const w=words[wi];
+        const gap=lw.length?ctx.measureText(' ').width:0;
+        const ww=ctx.measureText(w).width;
+        if(lx+gap+ww>maxW&&lw.length)break;
+        lw.push(w);lx+=gap+ww;wi++;
+      }
+      if(lw.length)ctx.fillText(lw.join(' '),sx+2,lineY);
+    }
+    lineY+=LINE_H;
+  }
+}
+
+function resize(){
+  const r=stage.getBoundingClientRect();
+  W=r.width; H=r.height;
+  canvas.width=W; canvas.height=H;
+  redraw();
+}
+
+async function init(){
+  const r=stage.getBoundingClientRect();
+  W=r.width||640; H=r.height||520;
+  canvas.width=W; canvas.height=H;
+
+  const pos=[
+    [38, 42],
+    [Math.round(W*0.41), 195],
+    [Math.round(W*0.68), 30],
+  ];
+
+  for(let i=0;i<PETS.length;i++){
+    const pet=PETS[i];
+    loadMsg.textContent=`Loading ${pet.label}... (${i+1}/3)`;
+    try{
+      const dataUrl=await loadImage(pet.url);
+      makePet(dataUrl,pet.sz,pos[i][0],pos[i][1]);
+    }catch(e){
+      console.warn('Fallback for',pet.label,e);
+      makeFallback(pet,pos[i][0],pos[i][1]);
+    }
+  }
+  loadingEl.style.display='none';
+  resize();
+}
+
+window.addEventListener('resize',resize);
+init();
+</script>
+</body>
+</html>
