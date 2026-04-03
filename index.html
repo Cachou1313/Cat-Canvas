@@ -187,43 +187,63 @@ function makePet(dataUrl, sz, sx, sy) {
   wrap.appendChild(img);
   petLayer.appendChild(wrap);
 
+  var baseVx = (Math.random() - 0.5) * 0.6;
+  var baseVy = (Math.random() - 0.5) * 0.6;
+
   var p = {
     wrap: wrap,
     x: sx, y: sy,
     w: sz, h: sz,
     dragging: false,
     ox: 0, oy: 0,
-    vx: (Math.random() - 0.5) * 0.6,
-    vy: (Math.random() - 0.5) * 0.6,
+    vx: baseVx,
+    vy: baseVy,
+    baseVx: baseVx,
+    baseVy: baseVy,
     ax: Math.random() * Math.PI * 2,
     ay: Math.random() * Math.PI * 2,
-    as: 0.003 + Math.random() * 0.002
+    as: 0.003 + Math.random() * 0.002,
+    // throw tracking
+    prevX: sx, prevY: sy,
+    throwVx: 0, throwVy: 0,
+    throwing: false
   };
   pets.push(p);
 
   wrap.addEventListener('mousedown', function(e) {
     e.preventDefault();
     p.dragging = true;
+    p.throwing = false;
     wrap.style.zIndex = '99';
     var r = stage.getBoundingClientRect();
     p.ox = e.clientX - r.left - p.x;
     p.oy = e.clientY - r.top  - p.y;
+    p.prevX = p.x;
+    p.prevY = p.y;
   });
 
   wrap.addEventListener('touchstart', function(e) {
     e.preventDefault();
     p.dragging = true;
+    p.throwing = false;
     wrap.style.zIndex = '99';
     var r = stage.getBoundingClientRect();
     p.ox = e.touches[0].clientX - r.left - p.x;
     p.oy = e.touches[0].clientY - r.top  - p.y;
+    p.prevX = p.x;
+    p.prevY = p.y;
   }, { passive: false });
 
   window.addEventListener('mousemove', function(e) {
     if (!p.dragging) { return; }
     var r = stage.getBoundingClientRect();
-    p.x = Math.max(0, Math.min(W - p.w, e.clientX - r.left - p.ox));
-    p.y = Math.max(0, Math.min(H - p.h, e.clientY - r.top  - p.oy));
+    var nx = Math.max(0, Math.min(W - p.w, e.clientX - r.left - p.ox));
+    var ny = Math.max(0, Math.min(H - p.h, e.clientY - r.top  - p.oy));
+    // track velocity as delta from last frame position
+    p.throwVx = nx - p.x;
+    p.throwVy = ny - p.y;
+    p.x = nx;
+    p.y = ny;
     wrap.style.left = p.x + 'px';
     wrap.style.top  = p.y + 'px';
     redraw();
@@ -233,21 +253,40 @@ function makePet(dataUrl, sz, sx, sy) {
     if (!p.dragging) { return; }
     e.preventDefault();
     var r = stage.getBoundingClientRect();
-    p.x = Math.max(0, Math.min(W - p.w, e.touches[0].clientX - r.left - p.ox));
-    p.y = Math.max(0, Math.min(H - p.h, e.touches[0].clientY - r.top  - p.oy));
+    var nx = Math.max(0, Math.min(W - p.w, e.touches[0].clientX - r.left - p.ox));
+    var ny = Math.max(0, Math.min(H - p.h, e.touches[0].clientY - r.top  - p.oy));
+    p.throwVx = nx - p.x;
+    p.throwVy = ny - p.y;
+    p.x = nx;
+    p.y = ny;
     wrap.style.left = p.x + 'px';
     wrap.style.top  = p.y + 'px';
     redraw();
   }, { passive: false });
 
   window.addEventListener('mouseup', function() {
+    if (!p.dragging) { return; }
     p.dragging = false;
     wrap.style.zIndex = '10';
+    // apply throw if fast enough
+    var speed = Math.sqrt(p.throwVx * p.throwVx + p.throwVy * p.throwVy);
+    if (speed > 0.5) {
+      p.vx = p.throwVx * 0.85;
+      p.vy = p.throwVy * 0.85;
+      p.throwing = true;
+    }
   });
 
   window.addEventListener('touchend', function() {
+    if (!p.dragging) { return; }
     p.dragging = false;
     wrap.style.zIndex = '10';
+    var speed = Math.sqrt(p.throwVx * p.throwVx + p.throwVy * p.throwVy);
+    if (speed > 0.5) {
+      p.vx = p.throwVx * 0.85;
+      p.vy = p.throwVy * 0.85;
+      p.throwing = true;
+    }
   });
 }
 
@@ -261,6 +300,21 @@ function animate() {
 
     p.ax += p.as;
     p.ay += p.as * 0.7;
+
+    if (p.throwing) {
+      // gradually blend throw velocity back toward base float velocity
+      p.vx += (p.baseVx - p.vx) * 0.025;
+      p.vy += (p.baseVy - p.vy) * 0.025;
+      // stop throwing state once close enough to base speed
+      var dvx = p.vx - p.baseVx;
+      var dvy = p.vy - p.baseVy;
+      if (Math.sqrt(dvx*dvx + dvy*dvy) < 0.05) {
+        p.vx = p.baseVx;
+        p.vy = p.baseVy;
+        p.throwing = false;
+      }
+    }
+
     p.x  += (p.vx + Math.sin(p.ax) * 0.4) * speedScale;
     p.y  += (p.vy + Math.sin(p.ay) * 0.4) * speedScale;
 
