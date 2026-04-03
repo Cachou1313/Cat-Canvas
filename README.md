@@ -2,7 +2,7 @@ Pet Project
 An interactive web app that demonstrates real-time text reflow around moving objects using the Pretext concept and the HTML5 Canvas API. Drag, throw, and watch your pets float around the screen while cat and dog facts reflow around them live.
 
 Demo
-Live site: your-vercel-url.vercel.app
+Live site: cat-canvas.vercel.app
 
 Features
 
