@@ -3,269 +3,413 @@
 <head>
 <meta charset="utf-8"/>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Georgia',serif;background:#1c1c1e}
-#wrap{display:flex;flex-direction:column;height:100vh}
-#bar{display:flex;align-items:center;justify-content:center;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;background:#1c1c1e}
-#bar h2{font-size:17px;font-weight:700;color:#f0ece4;letter-spacing:0.03em;text-align:center;line-height:1.4}
-#stage{position:relative;flex:1;overflow:hidden}
-canvas#c{position:absolute;inset:0;display:block}
-#petLayer{position:absolute;inset:0;pointer-events:none}
-
-.pet-wrap{
-  position:absolute;
-  pointer-events:all;
-  cursor:grab;
-  user-select:none;
-  touch-action:none;
-  border-radius:50%;
-  /* white bezel */
-  border:4px solid #ffffff;
-  /* layered shadow: soft ambient + deeper drop */
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.12),
-    0 8px 24px rgba(0,0,0,0.6),
-    0 20px 48px rgba(0,0,0,0.4),
-    0 2px 6px rgba(0,0,0,0.8);
-  overflow:hidden;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: Georgia, serif; background: #1c1c1e; }
+#wrap { display: flex; flex-direction: column; height: 100vh; }
+#bar {
+  display: flex; align-items: center; justify-content: center; position: relative;
+  padding: 14px 22px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0; background: #1c1c1e;
+}
+#bar h2 {
+  font-size: 17px; font-weight: 700; color: #f0ece4;
+  letter-spacing: 0.03em; text-align: center; line-height: 1.4;
+}
+#speedWrap { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); }
+#speedSelect {
+  appearance: none; -webkit-appearance: none;
+  background-color: #2c2c2e; color: #f0ece4;
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 6px 28px 6px 12px; font-size: 12px; font-family: Georgia, serif;
+  letter-spacing: 0.03em; cursor: pointer; outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.4)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+#speedSelect:hover { border-color: rgba(255,255,255,0.3); background-color: #3a3a3c; }
+#stage { position: relative; flex: 1; overflow: hidden; }
+canvas { position: absolute; inset: 0; display: block; }
+#petLayer { position: absolute; inset: 0; pointer-events: none; }
+.pet-wrap {
+  position: absolute; pointer-events: all; cursor: grab;
+  user-select: none; touch-action: none; border-radius: 50%;
+  border: 4px solid #ffffff; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.6),
+              0 20px 48px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.8);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
-.pet-wrap:hover{
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.2),
-    0 12px 32px rgba(0,0,0,0.7),
-    0 24px 56px rgba(0,0,0,0.5),
-    0 2px 8px rgba(0,0,0,0.9);
+.pet-wrap:hover {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.2), 0 12px 32px rgba(0,0,0,0.7),
+              0 24px 56px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.9);
   transform: translateY(-2px) scale(1.02);
 }
-.pet-wrap:active{
-  cursor:grabbing;
-  transform: scale(0.98);
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.15),
-    0 4px 12px rgba(0,0,0,0.7),
-    0 10px 28px rgba(0,0,0,0.5);
+.pet-wrap:active {
+  cursor: grabbing; transform: scale(0.98);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.7),
+              0 10px 28px rgba(0,0,0,0.5);
 }
-.pet-wrap img{
-  display:block;
-  pointer-events:none;
-  width:100%;height:100%;
-  object-fit:cover;
-  object-position:center 15%;
+.pet-wrap img {
+  display: block; pointer-events: none;
+  width: 100%; height: 100%; object-fit: cover; object-position: center 15%;
 }
-
-#foot{
-  font-size:11px;
-  color:rgba(255,255,255,0.2);
-  padding:6px 22px;
-  border-top:1px solid rgba(255,255,255,0.06);
-  flex-shrink:0;
-  letter-spacing:0.03em;
+#foot {
+  font-size: 11px; color: rgba(255,255,255,0.2); padding: 6px 22px;
+  border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; letter-spacing: 0.03em;
 }
-#loading{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:14px;
-  font-size:14px;color:rgba(255,255,255,0.4);
-  font-family:Georgia,serif;
-  background:#1c1c1e;
-  z-index:200;
-  letter-spacing:0.04em;
+#loading {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  font-size: 14px; color: rgba(255,255,255,0.4); font-family: Georgia, serif;
+  background: #1c1c1e; z-index: 200; letter-spacing: 0.04em;
 }
-.spinner{
-  width:28px;height:28px;
-  border:2px solid rgba(255,255,255,0.1);
-  border-top-color:rgba(255,255,255,0.5);
-  border-radius:50%;
-  animation:spin .8s linear infinite;
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.5);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
 }
-@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <div id="wrap">
   <div id="bar">
-    <h2>Pet Project — Drag the images to play with Pretext / Canvas API</h2>
+    <h2>Pet Project &mdash; Drag the images to play with Pretext / Canvas API</h2>
+    <div id="speedWrap">
+      <select id="speedSelect">
+        <option value="0.08">Extremely Slow</option>
+        <option value="0.3">Slow</option>
+        <option value="0.6" selected>Medium</option>
+        <option value="1.4">Fast</option>
+        <option value="2.8">What are you silly? I&#39;m still gonna send it</option>
+      </select>
+    </div>
   </div>
   <div id="stage">
-    <div id="loading"><div class="spinner"></div><span id="loadMsg">Loading pets...</span></div>
+    <div id="loading">
+      <div class="spinner"></div>
+      <span id="loadMsg">Loading pets...</span>
+    </div>
     <canvas id="c"></canvas>
     <div id="petLayer"></div>
   </div>
-  <div id="foot">Drag any pet — text reflows in real time</div>
+  <div id="foot">Drag any pet &mdash; text reflows in real time</div>
 </div>
-<script>
-const FACTS = "Cats sleep between 12 and 16 hours a day, making them one of the most sleep-loving mammals on the planet. Dogs have a sense of smell that is estimated to be 10,000 to 100,000 times more powerful than that of humans. A group of cats is called a clowder, and a group of kittens is called a kindle. Dogs can understand up to 250 words and gestures, and have demonstrated basic arithmetic ability. Cats can make over 100 different vocal sounds, while dogs can only make around 10. A dog's nose print is as unique as a human fingerprint and can be used to identify them. A cat's nose print is equally unique — no two cats share the same pattern. Dogs have three eyelids, including a third lid called the nictitating membrane that keeps the eye moist and protected. Cats have a specialized collarbone that allows them to always land on their feet, a reflex called self-righting. The Basenji is the only breed of dog that cannot bark, instead producing a yodel-like sound called a barroo. The oldest known pet cat was found in a 9,500-year-old grave on the island of Cyprus, predating Egyptian cat worship by thousands of years. A dog's average body temperature runs between 101 and 102.5 degrees Fahrenheit, slightly higher than that of humans. Cats can rotate their ears 180 degrees, with each ear controlled by 32 individual muscles. Greyhounds are the fastest dog breed, capable of reaching speeds up to 45 miles per hour. A cat's heart beats nearly twice as fast as a human heart, between 140 and 220 beats per minute. Dogs curl into a ball when sleeping as an instinctive behavior to conserve warmth and protect their vital organs. Cats knead with their paws as a comforting behavior carried over from kittenhood, when they kneaded their mothers to stimulate milk flow. The Norwegian Lundehund has six toes on each foot and can tilt its head backward to touch its own spine. Cats are obligate carnivores, meaning their bodies require nutrients found only in animal flesh to survive and thrive. Dogs sweat primarily through the pads of their paws rather than through their skin like humans do. A cat's whiskers are roughly as wide as its body and help it gauge whether it can fit through a narrow space. The Chow Chow and the Shar-Pei are the only two dog breeds born with a blue-black tongue. Cats have a third eyelid called the nictitating membrane that sweeps across to protect and moisten the eye. A dog's heart beats between 60 and 140 times per minute depending on size — smaller breeds run faster than larger ones. Cats cannot taste sweetness because they lack the taste receptor gene that detects sugary flavors. Dogs dream during REM sleep and their paws and faces often twitch as they act out their dreams. A cat rubs its face on objects and people to deposit scent from facial glands, marking everything as familiar and safe. The Dalmatian is born completely white and develops its spots only as it grows older. Cats can jump up to six times their own body length in a single bound. Dogs have been selectively bred by humans for over 15,000 years, making them the first domesticated animal on Earth. Cats have a reflective layer behind their retinas called the tapetum lucidum, which bounces light back through the eye to dramatically improve night vision. A dog's whiskers, found on the muzzle and above the eyes, are highly sensitive and help detect subtle changes in airflow. Purring occurs at frequencies between 25 and 150 hertz, a range that may actively promote bone density and healing. Dogs have an extraordinary ability to detect certain diseases including cancer, diabetes, and seizures through scent alone. Ancient Egyptians revered cats so highly that killing one, even by accident, could be punishable by death. The Saint Bernard breed has historically been used for mountain rescue in the Swiss Alps, using its keen sense of smell to locate avalanche victims. Cats spend roughly 30 to 50 percent of their waking hours grooming themselves or other cats they trust. A dog's paw pads contain fatty tissue that acts as insulation, allowing them to walk on ice and snow with minimal discomfort. The world's largest domestic cat breed is the Maine Coon, with males regularly exceeding 20 pounds. Sphynx cats are not truly hairless — they have a fine layer of downy fuzz that makes their skin feel like warm suede. Black cats are considered good luck in the United Kingdom and Japan. Mastiffs are among the oldest and heaviest dog breeds, with some individuals exceeding 200 pounds. Dogs are one of only two mammals known to seek out eye contact with humans — the other being horses.";
 
-const PETS = [
-  { url: "https://raw.githubusercontent.com/Cachou1313/Cat-Canvas/main/Cachou.png", sz: 148, label: "Cachou", color: "#2a2a2a" },
-  { url: "https://raw.githubusercontent.com/Cachou1313/Cat-Canvas/main/neo.png",    sz: 155, label: "Neo",    color: "#8a7a6a" },
-  { url: "https://raw.githubusercontent.com/Cachou1313/Cat-Canvas/main/polly.png",  sz: 162, label: "Polly",  color: "#7a6040" },
+<script>
+var FACTS = "Cats sleep between 12 and 16 hours a day, making them one of the most sleep-loving mammals on the planet. Dogs have a sense of smell estimated to be 10,000 to 100,000 times more powerful than that of humans. A group of cats is called a clowder, and a group of kittens is called a kindle. Dogs can understand up to 250 words and gestures, and have demonstrated basic arithmetic ability. Cats can make over 100 different vocal sounds, while dogs can only make around 10. A dog nose print is as unique as a human fingerprint and can be used to identify them. A cat nose print is equally unique, no two cats share the same pattern. Dogs have three eyelids including a nictitating membrane that keeps the eye moist and protected. Cats have a specialized collarbone that allows them to always land on their feet, a reflex called self-righting. The Basenji is the only dog breed that cannot bark, instead producing a yodel-like sound called a barroo. The oldest known pet cat was found in a 9500-year-old grave on the island of Cyprus. A dog average body temperature runs between 101 and 102.5 degrees Fahrenheit. Cats can rotate their ears 180 degrees, with each ear controlled by 32 individual muscles. Greyhounds are the fastest dog breed, capable of reaching speeds up to 45 miles per hour. A cat heart beats nearly twice as fast as a human heart, between 140 and 220 beats per minute. Dogs curl into a ball when sleeping to conserve warmth and protect their vital organs. Cats knead with their paws as a comforting behavior carried over from kittenhood. The Norwegian Lundehund has six toes on each foot and can tilt its head backward to touch its own spine. Cats are obligate carnivores, meaning their bodies require nutrients found only in animal flesh. Dogs sweat primarily through the pads of their paws rather than through their skin. A cat whiskers are roughly as wide as its body and help it gauge whether it can fit through a narrow space. The Chow Chow and the Shar-Pei are the only two dog breeds born with a blue-black tongue. Cats have a third eyelid called the nictitating membrane that sweeps across to protect and moisten the eye. A dog heart beats between 60 and 140 times per minute depending on size. Cats cannot taste sweetness because they lack the taste receptor gene that detects sugary flavors. Dogs dream during REM sleep and their paws and faces often twitch as they act out their dreams. A cat rubs its face on objects and people to deposit scent from facial glands marking everything as familiar and safe. The Dalmatian is born completely white and develops its spots only as it grows older. Cats can jump up to six times their own body length in a single bound. Dogs have been selectively bred by humans for over 15000 years making them the first domesticated animal on Earth. Cats have a reflective layer behind their retinas called the tapetum lucidum which improves night vision dramatically. A dog whiskers are highly sensitive and help detect subtle changes in airflow. Purring occurs at frequencies between 25 and 150 hertz, a range that may promote bone density and healing. Dogs can detect certain diseases including cancer, diabetes, and seizures through scent alone. Ancient Egyptians revered cats so highly that killing one could be punishable by death. The Saint Bernard has historically been used for mountain rescue in the Swiss Alps. Cats spend roughly 30 to 50 percent of their waking hours grooming themselves or other cats. A dog paw pads contain fatty tissue that acts as insulation against ice and snow. The Maine Coon is the largest domestic cat breed with males regularly exceeding 20 pounds. Sphynx cats are not truly hairless, they have a fine layer of downy fuzz that feels like warm suede. Black cats are considered good luck in the United Kingdom and Japan. Mastiffs are among the oldest and heaviest dog breeds with some individuals exceeding 200 pounds. Dogs are one of only two mammals known to seek out eye contact with humans, the other being horses.";
+
+var PETS = [
+  { url: "Cachou.png", sz: 148, label: "Cachou", color: "#2a2a2a" },
+  { url: "neo.png",    sz: 155, label: "Neo",    color: "#8a7a6a" },
+  { url: "polly.png",  sz: 162, label: "Polly",  color: "#7a6040" }
 ];
 
-const stage = document.getElementById('stage');
-const petLayer = document.getElementById('petLayer');
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const loadingEl = document.getElementById('loading');
-const loadMsg = document.getElementById('loadMsg');
-let W, H;
-const PAD = 32, LINE_H = 27, FONT = '15px Georgia,serif';
-const pets = [];
+var stage     = document.getElementById('stage');
+var petLayer  = document.getElementById('petLayer');
+var canvas    = document.getElementById('c');
+var ctx       = canvas.getContext('2d');
+var loadingEl = document.getElementById('loading');
+var loadMsg   = document.getElementById('loadMsg');
+var speedSel  = document.getElementById('speedSelect');
+
+var W = 0;
+var H = 0;
+var PAD    = 32;
+var LINE_H = 27;
+var FONT   = '15px Georgia,serif';
+var pets   = [];
+var speedScale = 0.6;
+
+speedSel.addEventListener('change', function() {
+  speedScale = parseFloat(speedSel.value);
+});
 
 function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const oc = document.createElement('canvas');
-      oc.width = 400; oc.height = 400;
-      const oc2 = oc.getContext('2d');
-      const ar = img.naturalWidth / img.naturalHeight;
-      let sx=0,sy=0,sw=img.naturalWidth,sh=img.naturalHeight;
-      if (ar>1){sw=img.naturalHeight;sx=(img.naturalWidth-sw)/2;}
-      else{sh=img.naturalWidth;sy=(img.naturalHeight-sh)/2;}
-      oc2.drawImage(img,sx,sy,sw,sh,0,0,400,400);
-      resolve(oc.toDataURL('image/jpeg',0.88));
+    img.onload = function() {
+      var oc  = document.createElement('canvas');
+      oc.width = 400;
+      oc.height = 400;
+      var oc2 = oc.getContext('2d');
+      var ar = img.naturalWidth / img.naturalHeight;
+      var sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+      if (ar > 1) {
+        sw = img.naturalHeight;
+        sx = (img.naturalWidth - sw) / 2;
+      } else {
+        sh = img.naturalWidth;
+        sy = (img.naturalHeight - sh) / 2;
+      }
+      oc2.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
+      resolve(oc.toDataURL('image/jpeg', 0.88));
     };
-    img.onerror = ()=>reject(new Error('img load failed'));
+    img.onerror = function() {
+      reject(new Error('img load failed'));
+    };
     img.src = url;
-    setTimeout(()=>reject(new Error('timeout')), 8000);
+    setTimeout(function() {
+      reject(new Error('timeout'));
+    }, 8000);
   });
 }
 
 function makeFallback(pet, sx, sy) {
-  const sz = pet.sz;
-  const oc = document.createElement('canvas');
-  oc.width=sz; oc.height=sz;
-  const c2=oc.getContext('2d');
-  c2.fillStyle=pet.color;
-  c2.beginPath();c2.arc(sz/2,sz/2,sz/2,0,Math.PI*2);c2.fill();
-  c2.fillStyle='rgba(255,255,255,0.6)';
-  c2.font=`500 13px Georgia,serif`;
-  c2.textAlign='center';c2.textBaseline='middle';
-  c2.fillText(pet.label,sz/2,sz/2);
+  var sz  = pet.sz;
+  var oc  = document.createElement('canvas');
+  oc.width  = sz;
+  oc.height = sz;
+  var c2 = oc.getContext('2d');
+  c2.fillStyle = pet.color;
+  c2.beginPath();
+  c2.arc(sz / 2, sz / 2, sz / 2, 0, Math.PI * 2);
+  c2.fill();
+  c2.fillStyle = 'rgba(255,255,255,0.6)';
+  c2.font = '13px Georgia,serif';
+  c2.textAlign = 'center';
+  c2.textBaseline = 'middle';
+  c2.fillText(pet.label, sz / 2, sz / 2);
   makePet(oc.toDataURL(), sz, sx, sy);
 }
 
 function makePet(dataUrl, sz, sx, sy) {
-  const wrap = document.createElement('div');
-  wrap.className = 'pet-wrap';
-  wrap.style.cssText = `width:${sz}px;height:${sz}px;left:${sx}px;top:${sy}px;z-index:10`;
-  const img = document.createElement('img');
+  var wrap = document.createElement('div');
+  wrap.className    = 'pet-wrap';
+  wrap.style.width  = sz + 'px';
+  wrap.style.height = sz + 'px';
+  wrap.style.left   = sx + 'px';
+  wrap.style.top    = sy + 'px';
+  wrap.style.zIndex = '10';
+
+  var img = document.createElement('img');
   img.src = dataUrl;
   wrap.appendChild(img);
   petLayer.appendChild(wrap);
 
-  const p = {wrap, x:sx, y:sy, w:sz, h:sz, dragging:false, ox:0, oy:0};
+  var p = {
+    wrap: wrap,
+    x: sx, y: sy,
+    w: sz, h: sz,
+    dragging: false,
+    ox: 0, oy: 0,
+    vx: (Math.random() - 0.5) * 0.6,
+    vy: (Math.random() - 0.5) * 0.6,
+    ax: Math.random() * Math.PI * 2,
+    ay: Math.random() * Math.PI * 2,
+    as: 0.003 + Math.random() * 0.002
+  };
   pets.push(p);
 
-  const down = e => {
-    e.preventDefault(); p.dragging=true; wrap.style.zIndex=99;
-    const pt=e.touches?e.touches[0]:e;
-    const r=stage.getBoundingClientRect();
-    p.ox=pt.clientX-r.left-p.x; p.oy=pt.clientY-r.top-p.y;
-  };
-  const move = e => {
-    if(!p.dragging)return; e.preventDefault();
-    const pt=e.touches?e.touches[0]:e;
-    const r=stage.getBoundingClientRect();
-    p.x=Math.max(0,Math.min(W-p.w,pt.clientX-r.left-p.ox));
-    p.y=Math.max(0,Math.min(H-p.h,pt.clientY-r.top-p.oy));
-    wrap.style.left=p.x+'px'; wrap.style.top=p.y+'px';
+  wrap.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    p.dragging = true;
+    wrap.style.zIndex = '99';
+    var r = stage.getBoundingClientRect();
+    p.ox = e.clientX - r.left - p.x;
+    p.oy = e.clientY - r.top  - p.y;
+  });
+
+  wrap.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    p.dragging = true;
+    wrap.style.zIndex = '99';
+    var r = stage.getBoundingClientRect();
+    p.ox = e.touches[0].clientX - r.left - p.x;
+    p.oy = e.touches[0].clientY - r.top  - p.y;
+  }, { passive: false });
+
+  window.addEventListener('mousemove', function(e) {
+    if (!p.dragging) { return; }
+    var r = stage.getBoundingClientRect();
+    p.x = Math.max(0, Math.min(W - p.w, e.clientX - r.left - p.ox));
+    p.y = Math.max(0, Math.min(H - p.h, e.clientY - r.top  - p.oy));
+    wrap.style.left = p.x + 'px';
+    wrap.style.top  = p.y + 'px';
     redraw();
-  };
-  const up = ()=>{p.dragging=false; wrap.style.zIndex=10;};
-  wrap.addEventListener('mousedown',down);
-  wrap.addEventListener('touchstart',down,{passive:false});
-  window.addEventListener('mousemove',move);
-  window.addEventListener('touchmove',move,{passive:false});
-  window.addEventListener('mouseup',up);
-  window.addEventListener('touchend',up);
+  });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!p.dragging) { return; }
+    e.preventDefault();
+    var r = stage.getBoundingClientRect();
+    p.x = Math.max(0, Math.min(W - p.w, e.touches[0].clientX - r.left - p.ox));
+    p.y = Math.max(0, Math.min(H - p.h, e.touches[0].clientY - r.top  - p.oy));
+    wrap.style.left = p.x + 'px';
+    wrap.style.top  = p.y + 'px';
+    redraw();
+  }, { passive: false });
+
+  window.addEventListener('mouseup', function() {
+    p.dragging = false;
+    wrap.style.zIndex = '10';
+  });
+
+  window.addEventListener('touchend', function() {
+    p.dragging = false;
+    wrap.style.zIndex = '10';
+  });
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  var moved = false;
+
+  for (var i = 0; i < pets.length; i++) {
+    var p = pets[i];
+    if (p.dragging) { continue; }
+
+    p.ax += p.as;
+    p.ay += p.as * 0.7;
+    p.x  += (p.vx + Math.sin(p.ax) * 0.4) * speedScale;
+    p.y  += (p.vy + Math.sin(p.ay) * 0.4) * speedScale;
+
+    if (p.x <= 0)       { p.x = 0;       p.vx =  Math.abs(p.vx); }
+    if (p.x >= W - p.w) { p.x = W - p.w; p.vx = -Math.abs(p.vx); }
+    if (p.y <= 0)       { p.y = 0;       p.vy =  Math.abs(p.vy); }
+    if (p.y >= H - p.h) { p.y = H - p.h; p.vy = -Math.abs(p.vy); }
+
+    for (var j = 0; j < pets.length; j++) {
+      var o = pets[j];
+      if (o === p || o.dragging) { continue; }
+      var acx  = p.x + p.w / 2;
+      var acy  = p.y + p.h / 2;
+      var bcx  = o.x + o.w / 2;
+      var bcy  = o.y + o.h / 2;
+      var minD = p.w / 2 + o.w / 2;
+      var dx   = acx - bcx;
+      var dy   = acy - bcy;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minD && dist > 0) {
+        var nx      = dx / dist;
+        var ny      = dy / dist;
+        var overlap = (minD - dist) / 2;
+        p.x += nx * overlap;
+        p.y += ny * overlap;
+        o.x -= nx * overlap;
+        o.y -= ny * overlap;
+        var dpn  = p.vx * nx + p.vy * ny;
+        var don  = o.vx * nx + o.vy * ny;
+        p.vx += (don - dpn) * nx;
+        p.vy += (don - dpn) * ny;
+        o.vx += (dpn - don) * nx;
+        o.vy += (dpn - don) * ny;
+        var spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        if (spd < 0.3) { p.vx *= 1.5; p.vy *= 1.5; }
+        var osp = Math.sqrt(o.vx * o.vx + o.vy * o.vy);
+        if (osp < 0.3) { o.vx *= 1.5; o.vy *= 1.5; }
+      }
+    }
+
+    p.wrap.style.left = p.x + 'px';
+    p.wrap.style.top  = p.y + 'px';
+    moved = true;
+  }
+
+  if (moved) { redraw(); }
 }
 
 function getSegments(lineTop, lineBot) {
-  const blocked=[], M=20;
-  for(const p of pets){
-    const cx=p.x+p.w/2, cy=p.y+p.h/2;
-    const rx=p.w/2+M, ry=p.h/2+M;
-    const dy=(lineTop+lineBot)/2-cy;
-    if(Math.abs(dy)>=ry)continue;
-    const hw=rx*Math.sqrt(1-dy*dy/(ry*ry));
-    blocked.push([cx-hw,cx+hw]);
+  var blocked = [];
+  var M = 20;
+  for (var i = 0; i < pets.length; i++) {
+    var p  = pets[i];
+    var cx = p.x + p.w / 2;
+    var cy = p.y + p.h / 2;
+    var rx = p.w / 2 + M;
+    var ry = p.h / 2 + M;
+    var dy = (lineTop + lineBot) / 2 - cy;
+    if (Math.abs(dy) >= ry) { continue; }
+    var hw = rx * Math.sqrt(1 - (dy * dy) / (ry * ry));
+    blocked.push([cx - hw, cx + hw]);
   }
-  blocked.sort((a,b)=>a[0]-b[0]);
-  const segs=[]; let start=PAD;
-  for(const [bx,bxe] of blocked){
-    if(bx>start)segs.push([start,Math.min(bx-5,W-PAD)]);
-    start=Math.max(start,bxe+5);
+  blocked.sort(function(a, b) { return a[0] - b[0]; });
+  var segs  = [];
+  var start = PAD;
+  for (var k = 0; k < blocked.length; k++) {
+    var bx  = blocked[k][0];
+    var bxe = blocked[k][1];
+    if (bx > start) {
+      segs.push([start, Math.min(bx - 5, W - PAD)]);
+    }
+    start = Math.max(start, bxe + 5);
   }
-  if(start<W-PAD)segs.push([start,W-PAD]);
-  return segs.filter(s=>s[1]-s[0]>52);
+  if (start < W - PAD) { segs.push([start, W - PAD]); }
+  return segs.filter(function(s) { return s[1] - s[0] > 52; });
 }
 
 function redraw() {
-  ctx.clearRect(0,0,W,H);
-  ctx.font=FONT;
-  ctx.textBaseline='alphabetic';
-  ctx.fillStyle='rgba(240,236,228,0.88)';
-
-  const words=FACTS.split(/\s+/);
-  let wi=0, lineY=PAD+LINE_H;
-  while(wi<words.length && lineY<H-8){
-    const segs=getSegments(lineY-LINE_H+4,lineY+4);
-    for(const [sx,ex] of segs){
-      if(wi>=words.length)break;
-      const maxW=ex-sx-4;
-      let lw=[],lx=0;
-      while(wi<words.length){
-        const w=words[wi];
-        const gap=lw.length?ctx.measureText(' ').width:0;
-        const ww=ctx.measureText(w).width;
-        if(lx+gap+ww>maxW&&lw.length)break;
-        lw.push(w);lx+=gap+ww;wi++;
+  ctx.clearRect(0, 0, W, H);
+  ctx.font          = FONT;
+  ctx.textBaseline  = 'alphabetic';
+  ctx.fillStyle     = 'rgba(240,236,228,0.88)';
+  var words  = FACTS.split(/\s+/);
+  var wi     = 0;
+  var lineY  = PAD + LINE_H;
+  while (wi < words.length && lineY < H - 8) {
+    var segs = getSegments(lineY - LINE_H + 4, lineY + 4);
+    for (var s = 0; s < segs.length; s++) {
+      if (wi >= words.length) { break; }
+      var sx   = segs[s][0];
+      var ex   = segs[s][1];
+      var maxW = ex - sx - 4;
+      var lw   = [];
+      var lx   = 0;
+      while (wi < words.length) {
+        var word = words[wi];
+        var gap  = lw.length ? ctx.measureText(' ').width : 0;
+        var ww   = ctx.measureText(word).width;
+        if (lx + gap + ww > maxW && lw.length) { break; }
+        lw.push(word);
+        lx += gap + ww;
+        wi++;
       }
-      if(lw.length)ctx.fillText(lw.join(' '),sx+2,lineY);
+      if (lw.length) { ctx.fillText(lw.join(' '), sx + 2, lineY); }
     }
-    lineY+=LINE_H;
+    lineY += LINE_H;
   }
 }
 
-function resize(){
-  const r=stage.getBoundingClientRect();
-  W=r.width; H=r.height;
-  canvas.width=W; canvas.height=H;
+function resize() {
+  var r = stage.getBoundingClientRect();
+  W = r.width;
+  H = r.height;
+  canvas.width  = W;
+  canvas.height = H;
   redraw();
 }
 
-async function init(){
-  const r=stage.getBoundingClientRect();
-  W=r.width||640; H=r.height||520;
-  canvas.width=W; canvas.height=H;
+async function init() {
+  var r = stage.getBoundingClientRect();
+  W = r.width  || 640;
+  H = r.height || 520;
+  canvas.width  = W;
+  canvas.height = H;
 
-  const pos=[
+  var pos = [
     [38, 42],
-    [Math.round(W*0.41), 195],
-    [Math.round(W*0.68), 30],
+    [Math.round(W * 0.41), 195],
+    [Math.round(W * 0.68), 30]
   ];
 
-  for(let i=0;i<PETS.length;i++){
-    const pet=PETS[i];
-    loadMsg.textContent=`Loading ${pet.label}... (${i+1}/3)`;
-    try{
-      const dataUrl=await loadImage(pet.url);
-      makePet(dataUrl,pet.sz,pos[i][0],pos[i][1]);
-    }catch(e){
-      console.warn('Fallback for',pet.label,e);
-      makeFallback(pet,pos[i][0],pos[i][1]);
+  for (var i = 0; i < PETS.length; i++) {
+    var pet = PETS[i];
+    loadMsg.textContent = 'Loading ' + pet.label + '... (' + (i + 1) + '/3)';
+    try {
+      var dataUrl = await loadImage(pet.url);
+      makePet(dataUrl, pet.sz, pos[i][0], pos[i][1]);
+    } catch(e) {
+      console.warn('Fallback for', pet.label, e);
+      makeFallback(pet, pos[i][0], pos[i][1]);
     }
   }
-  loadingEl.style.display='none';
+
+  loadingEl.style.display = 'none';
   resize();
+  animate();
 }
 
-window.addEventListener('resize',resize);
+window.addEventListener('resize', resize);
 init();
 </script>
 </body>
